@@ -1,0 +1,1702 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DeskBuddy account backend handoff",
+    "version": "1.0.0",
+    "description": "Implementation contract for app 0.3.0. No live server is supplied. Firebase Auth + Firestore behind REST; pairing and all controls remain local BLE. See API_CONTRACT.md for validation, offline/security/idempotency semantics."
+  },
+  "servers": [
+    {
+      "url": "https://YOUR-STAGING-API.example.com",
+      "description": "Replace with developer-supplied HTTPS origin"
+    }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Public health; no deployment secrets",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "status": {
+                          "const": "ok"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getHealthz"
+      }
+    },
+    "/v1/auth/signup": {
+      "post": {
+        "summary": "Create Firebase Auth account + profile",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Signup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthResult"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthSignup"
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "summary": "Sign in via Firebase Auth REST; never custom password storage",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AuthResult"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthLogin"
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "Exchange/rotate Firebase refresh token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8192
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenPair"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthRefresh"
+      }
+    },
+    "/v1/auth/forgot-password": {
+      "post": {
+        "summary": "Generic reset email request; no enumeration",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthForgotPassword"
+      }
+    },
+    "/v1/auth/send-verification": {
+      "post": {
+        "summary": "Request verification email for authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "message"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthSendVerification"
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "summary": "GET current profile from verified token uid",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "profile": {
+                          "$ref": "#/components/schemas/Profile"
+                        }
+                      },
+                      "required": [
+                        "profile"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1Me"
+      },
+      "patch": {
+        "summary": "Update displayName/timezone only",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfilePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "profile": {
+                          "$ref": "#/components/schemas/Profile"
+                        }
+                      },
+                      "required": [
+                        "profile"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "patchV1Me"
+      }
+    },
+    "/v1/me/preferences": {
+      "get": {
+        "summary": "Get full cloud preferences/defaults",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "preferences": {
+                          "$ref": "#/components/schemas/Preferences"
+                        }
+                      },
+                      "required": [
+                        "preferences"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1MePreferences"
+      },
+      "patch": {
+        "summary": "Atomically merge preference patch; no hardware action",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "preferences": {
+                          "$ref": "#/components/schemas/Preferences"
+                        }
+                      },
+                      "required": [
+                        "preferences"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "patchV1MePreferences"
+      }
+    },
+    "/v1/me/devices": {
+      "get": {
+        "summary": "List account metadata; not device ownership",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "devices": {
+                          "type": "array",
+                          "maxItems": 100,
+                          "items": {
+                            "$ref": "#/components/schemas/Device"
+                          }
+                        }
+                      },
+                      "required": [
+                        "devices"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1MeDevices"
+      },
+      "put": {
+        "summary": "Metadata/settings snapshot upsert; never pair or command",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpsert"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "device": {
+                          "$ref": "#/components/schemas/Device"
+                        }
+                      },
+                      "required": [
+                        "device"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putV1MeDevices"
+      }
+    },
+    "/v1/me/devices/{recordId}": {
+      "delete": {
+        "summary": "Delete current-user cloud metadata only",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "deleted": {
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "deleted"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "deleteV1MeDevicesRecordId"
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "summary": "Paginated accepted-start reports; not completed sessions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "sessions": {
+                          "type": "array",
+                          "maxItems": 100,
+                          "items": {
+                            "$ref": "#/components/schemas/Session"
+                          }
+                        },
+                        "nextCursor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 1024
+                        }
+                      },
+                      "required": [
+                        "sessions",
+                        "nextCursor"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1MeSessions"
+      },
+      "post": {
+        "summary": "Idempotently record BLE accepted-start report; no command execution",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing identical clientEventId payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "session": {
+                          "$ref": "#/components/schemas/Session"
+                        }
+                      },
+                      "required": [
+                        "session"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "session": {
+                          "$ref": "#/components/schemas/Session"
+                        }
+                      },
+                      "required": [
+                        "session"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe structured API error; HTTP 400/401/403/409/429/503 as documented.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1MeSessions"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Firebase ID token"
+      }
+    },
+    "schemas": {
+      "Profile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "uid": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "uid",
+          "displayName",
+          "email",
+          "emailVerified",
+          "timezone",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Preferences": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "focusMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90
+          },
+          "breakMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "breathingSeconds": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 180
+          },
+          "notificationForwardingEnabled": {
+            "type": "boolean"
+          },
+          "notificationApps": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "focusMinutes",
+          "breakMinutes",
+          "breathingSeconds",
+          "notificationForwardingEnabled",
+          "notificationApps",
+          "updatedAt"
+        ]
+      },
+      "PreferencesPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "focusMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90
+          },
+          "breakMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "breathingSeconds": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 180
+          },
+          "notificationForwardingEnabled": {
+            "type": "boolean"
+          },
+          "notificationApps": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+            }
+          }
+        },
+        "required": [],
+        "minProperties": 1
+      },
+      "ProfilePatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "required": [],
+        "minProperties": 1
+      },
+      "Signup": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "displayName",
+          "email",
+          "password"
+        ]
+      },
+      "Login": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "TokenPair": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "expiresIn": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn"
+        ]
+      },
+      "AuthResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "expiresIn": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400
+          },
+          "user": {
+            "$ref": "#/components/schemas/Profile"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn",
+          "user"
+        ]
+      },
+      "DeviceUpsert": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "firmware": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "audio": {
+                "type": "boolean"
+              },
+              "pir": {
+                "type": "boolean"
+              },
+              "voice": {
+                "type": "boolean"
+              },
+              "quiet": {
+                "type": "boolean"
+              },
+              "chat": {
+                "type": "boolean"
+              },
+              "touch": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2
+              },
+              "volume": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "brightness": {
+                "type": "integer",
+                "minimum": 8,
+                "maximum": 255
+              },
+              "idle": {
+                "type": "integer",
+                "minimum": 30,
+                "maximum": 600
+              },
+              "focus": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 90
+              },
+              "rest": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              "reminder": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 120
+              },
+              "debounce": {
+                "type": "integer",
+                "minimum": 20,
+                "maximum": 100
+              }
+            },
+            "required": [],
+            "minProperties": 1
+          }
+        },
+        "required": [
+          "deviceId",
+          "label",
+          "firmware",
+          "settings"
+        ]
+      },
+      "Device": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "firmware": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "audio": {
+                "type": "boolean"
+              },
+              "pir": {
+                "type": "boolean"
+              },
+              "voice": {
+                "type": "boolean"
+              },
+              "quiet": {
+                "type": "boolean"
+              },
+              "chat": {
+                "type": "boolean"
+              },
+              "touch": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2
+              },
+              "volume": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "brightness": {
+                "type": "integer",
+                "minimum": 8,
+                "maximum": 255
+              },
+              "idle": {
+                "type": "integer",
+                "minimum": 30,
+                "maximum": 600
+              },
+              "focus": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 90
+              },
+              "rest": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              "reminder": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 120
+              },
+              "debounce": {
+                "type": "integer",
+                "minimum": 20,
+                "maximum": 100
+              }
+            },
+            "required": [],
+            "minProperties": 1
+          },
+          "recordId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "deviceId",
+          "label",
+          "firmware",
+          "settings",
+          "recordId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SessionCreate": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "clientEventId": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "Z$"
+              },
+              "kind": {
+                "const": "focus"
+              },
+              "focusMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 90
+              },
+              "breakMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              }
+            },
+            "required": [
+              "clientEventId",
+              "deviceId",
+              "startedAt",
+              "kind",
+              "focusMinutes",
+              "breakMinutes"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "clientEventId": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "Z$"
+              },
+              "kind": {
+                "const": "breathing"
+              },
+              "breathingSeconds": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 180
+              }
+            },
+            "required": [
+              "clientEventId",
+              "deviceId",
+              "startedAt",
+              "kind",
+              "breathingSeconds"
+            ]
+          }
+        ]
+      },
+      "Session": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "clientEventId": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "Z$"
+              },
+              "kind": {
+                "const": "focus"
+              },
+              "focusMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 90
+              },
+              "breakMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "state": {
+                "const": "start_accepted"
+              },
+              "receivedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "clientEventId",
+              "deviceId",
+              "startedAt",
+              "kind",
+              "focusMinutes",
+              "breakMinutes",
+              "id",
+              "state",
+              "receivedAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "clientEventId": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "Z$"
+              },
+              "kind": {
+                "const": "breathing"
+              },
+              "breathingSeconds": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 180
+              },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "state": {
+                "const": "start_accepted"
+              },
+              "receivedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "clientEventId",
+              "deviceId",
+              "startedAt",
+              "kind",
+              "breathingSeconds",
+              "id",
+              "state",
+              "receivedAt"
+            ]
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "fieldErrors": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "error",
+          "requestId"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*-debug.log*
+.firebase/
+coverage/
+.npm-cache/
+.cache/
+.tmp/
+*service-account*.json
+*serviceAccount*.json
+firebase-adminsdk*.json

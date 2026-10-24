@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // REST backend uses Admin SDK + IAM, and must enforce uid authorization itself.
+    // Flutter clients must never access these documents directly.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

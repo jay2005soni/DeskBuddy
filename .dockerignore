@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.*
+.git
+backend_handoff
+tests
+.npm-cache
+.cache
+.tmp
+*-debug.log*
+*service*account*.json
+*serviceAccount*.json
+firebase-adminsdk*.json
